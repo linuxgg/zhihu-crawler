@@ -1,0 +1,8 @@
+{
+    "applicationName" : "zhihu-crawler",
+    "applicationId": "ntlj74cmqrmis9gyyq86siw4eixszzwc08g54bzvukxap7s2",
+    "applicationKey": "9brj2jrjx9kmb8lek96yqlfd9j0ayk56nlreur5p7kbrzruv",
+    "global": {
+        "avVersion": "0.3.1"
+    }
+}
