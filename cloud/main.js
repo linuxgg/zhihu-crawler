@@ -1,50 +1,47 @@
 var moment = require('moment');
-var async = require('async');
 
-var Story = AV.Object.extend("Story");
+var LatestNews = AV.Object.extend("LatestNews");
 
-function createStory(json, onSuccess, onError) {
-	var story = new Story();
-	console.log(json);
-	story.save(json, {
-	  success: function(story) {
-	    onSuccess(story);
-	  },
-	  error: function(story, error) {
-	    console.log(error);
-	    onError(error.description);
-	  }
+function createStories(latestNews, onSuccess, onError) {
+	new LatestNews().save(latestNews, {
+		success: onSuccess,
+		error: onError
 	});
 }
 
-AV.Cloud.define("fetchZhihu", function(request, response) {
-  AV.Cloud.httpRequest({
-    url: 'http://news.at.zhihu.com/api/3/news/before/' + moment().format("YYYYMMDD"),
-    headers: {
-		'Content-Type': 'application/json'
-	},
-    success: function(httpResponse) {
-    	var data = httpResponse.data;
-		var date = data.date;
-		async.each(data.stories, function(story, callback) {
-			story.date = date;
-			story._id = story.id;
-			delete story['id']
-	  		createStory(story, function(story) {
-	  			callback(null, httpResponse.data);
-	  		}, function(story, error) {
-	  			callback(error);
-	  		});
-		}, function(err) {
-			if (err) {
-				response.error(err);
-			} else {
-				response.success('success');
+AV.Cloud.define('fetchZhihu', function(request, response) {
+	var dateStr = moment().format('YYYYMMDD');
+	var query = new AV.Query(LatestNews);
+	query.equalTo("date", dateStr);
+	query.find({
+		success: function(results) {
+			if (results.length == 0) {
+				doFetch(response);
 			}
-		});
-    },
-    error: function(httpResponse) {
-		response.error(httpResponse.status);
-    }
-  });
+		},
+		error: function(error) {
+			console.error(error);
+			doFetch(response);
+		}
+	});
 });
+
+function doFetch(response) {
+	console.log('fetch date: ' + moment().format('YYYYMMDD'));
+	AV.Cloud.httpRequest({
+		url: 'http://news-at.zhihu.com/api/3/news/latest',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		success: function(httpResponse) {
+			createStories(httpResponse.data, function(list) {
+				response.success('success');
+			}, function(error) {
+				response.error(error);
+			});
+		},
+		error: function(httpResponse) {
+			response.error(httpResponse.status);
+		}
+	});
+}
